@@ -1,0 +1,15 @@
+# Ignore secret files
+secrets/db_root_password.txt
+secrets/db_password.txt
+
+# Ignore the entire secrets directory (alternative approach)
+# secrets/
+
+# Ignore environment-specific files that might contain secrets
+*.env
+
+# Ignore any file with .secret extension
+*.secret
+
+# Ignore password.txt in db directory
+db/password.txt

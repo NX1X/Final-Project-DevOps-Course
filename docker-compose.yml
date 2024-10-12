@@ -1,0 +1,65 @@
+version: '3.8'
+services:
+  db:
+    image: mysql:8.0.27
+    restart: always
+    container_name: nx1x-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/db_root_password
+      MYSQL_DATABASE: example
+      MYSQL_HOST: db
+      MYSQL_PASSWORD_FILE: /run/secrets/db_password
+    expose:
+      - "3306"
+    volumes:
+      - db_data:/var/lib/mysql
+    networks:
+      - react0mysql
+    secrets:
+      - db_root_password
+      - db_password
+  
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    depends_on:
+      - db
+    container_name: nx1x-backend
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/example
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD_FILE: /run/secrets/db_password
+    expose:
+      - "8080"
+    volumes:
+      - ./backend/src/main/resources/application.properties:/backend/src/main/resources/application.properties:ro
+    networks:
+      - react0mysql
+    secrets:
+      - db_password
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: nx1x-frontend
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - react0mysql
+
+networks:
+  react0mysql:
+    driver: bridge
+
+volumes:
+  db_data:
+
+secrets:
+  db_root_password:
+    file: ./secrets/db_root_password.txt
+  db_password:
+    file: ./secrets/db_password.txt

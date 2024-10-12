@@ -1,0 +1,78 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches:
+      - dev
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+            aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+            aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+            aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Log in to Amazon ECR
+        id: login-ecr
+        run: |
+          aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
+
+      - name: Build backend image
+        run: |
+            docker-compose -f ./docker-compose.yml build backend
+
+      - name: Debug backend image build
+        run: |
+            docker images
+
+      - name: Create ECR repository for backend if it doesn't exist
+        run: |
+            aws ecr describe-repositories --repository-names "${{ secrets.ECR_BACKEND_REPOSITORY }}" || aws ecr create-repository --repository-name "${{ secrets.ECR_BACKEND_REPOSITORY }}"
+
+      - name: Tag and push backend image
+        run: |
+            IMAGE_ID=$(docker images -q react-java0mysql_backend:latest)
+            if [ -z "$IMAGE_ID" ]; then
+              echo "Backend image not found!"
+              exit 1
+            fi
+            echo "Backend image ID: $IMAGE_ID"
+            REPOSITORY_URI=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_BACKEND_REPOSITORY }}
+            docker tag $IMAGE_ID $REPOSITORY_URI:latest
+            docker push $REPOSITORY_URI:latest
+
+      - name: Build frontend image
+        run: |
+            docker-compose -f ./docker-compose.yml build frontend
+
+      - name: Debug frontend image build
+        run: |
+            docker images
+
+      - name: Create ECR repository for frontend if it doesn't exist
+        run: |
+            aws ecr describe-repositories --repository-names "${{ secrets.ECR_FRONTEND_REPOSITORY }}" || aws ecr create-repository --repository-name "${{ secrets.ECR_FRONTEND_REPOSITORY }}"
+
+      - name: Tag and push frontend image
+        run: |
+            IMAGE_ID=$(docker images -q react-java0mysql_frontend:latest)
+            if [ -z "$IMAGE_ID" ]; then
+              echo "Frontend image not found!"
+              exit 1
+            fi
+            echo "Frontend image ID: $IMAGE_ID"
+            REPOSITORY_URI=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_FRONTEND_REPOSITORY }}
+            docker tag $IMAGE_ID $REPOSITORY_URI:latest
+            docker push $REPOSITORY_URI:latest
+
+      - name: Logout from Amazon ECR
+        run: |
+          docker logout ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
