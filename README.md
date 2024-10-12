@@ -4,6 +4,10 @@
 
 This project, developed as the final assignment for a comprehensive DevOps course, showcases a state-of-the-art cloud-native application deployment pipeline, demonstrating expertise in cutting-edge DevOps practices and tools.
 
+## Project Origin
+
+This project is based on a React-Java-MySQL application originally created by my DevOps course instructor, Lidor Gerstel. The core application was forked from the [react-java0mysql](https://github.com/lidorg-dev/react-java0mysql) repository.
+
 ### 🛠️ Tools and Technologies
 
 This project leverages a wide range of modern DevOps tools and technologies:
